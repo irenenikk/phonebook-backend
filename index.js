@@ -1,5 +1,8 @@
 const express = require('express')
 const app = express()
+const bodyParser = require('body-parser')
+
+app.use(bodyParser.json())
 
 let persons = [
   {
@@ -59,6 +62,32 @@ app.delete('/api/persons/:id', (req, res) => {
     res.status(404).end()
   }
 })
+
+app.post('/api/persons', (req, res) => {
+  const person = req.body
+  if (!person) {
+    res.status(400).json({errors: ['content missing']})
+  }
+  const errors = validatePerson(person)
+  if (errors.length === 0) {
+    person.id = Math.floor(Math.random() * 50 +1)
+    persons = persons.concat(person)
+    res.json(person)
+  } else {
+    res.status(400).json({ errors })
+  }
+})
+
+const validatePerson = (person) => {
+  const errors = []
+  if (!person.name) {
+    errors.push('Name cannot be empty')
+  }
+  if (!person.number) {
+    errors.push('Number cannot be empty')
+  }
+  return errors
+}
 
 const PORT = 3001
 app.listen(PORT, () => {
