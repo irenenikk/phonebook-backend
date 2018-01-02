@@ -9,6 +9,7 @@ app.use(morgan('tiny'))
 morgan.token('data', (req, res) => JSON.stringify(req.body))
 app.use(morgan(':data'))
 app.use(cors())
+app.use(express.static('build'))
 
 let persons = [
   {
