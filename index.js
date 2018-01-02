@@ -86,6 +86,9 @@ const validatePerson = (person) => {
   if (!person.number) {
     errors.push('Number cannot be empty')
   }
+  if (persons.map(p => p.name.toLowerCase()).includes(person.name.toLowerCase())) {
+    errors.push(`${person.name} already exists in phonebook`)
+  }
   return errors
 }
 
