@@ -3,6 +3,7 @@ const app = express()
 const bodyParser = require('body-parser')
 const morgan = require('morgan')
 const cors = require('cors')
+const Person = require('./models/person')
 
 app.use(bodyParser.json())
 app.use(morgan('tiny'))
@@ -11,63 +12,44 @@ app.use(morgan(':data'))
 app.use(cors())
 app.use(express.static('build'))
 
-let persons = [
-  {
-    "name": "Arto Hellas",
-    "number": "040-123456",
-    "id": 1
-  },
-  {
-    "name": "Martti Tienari",
-    "number": "040-123456",
-    "id": 2
-  },
-  {
-    "name": "Arto Järvinen",
-    "number": "040-123456",
-    "id": 3
-  },
-  {
-    "name": "Lea Kutvonen",
-    "number": "040-123456",
-    "id": 4
-  }
-]
-
 app.get('/', (req, res) => {
   res.send('Welcome!')
 })
 
 app.get('/api/persons', (req, res) => {
-  res.json(persons)
+  Person
+  .find({}, {__v: 0})
+  .then(persons => {
+    res.json(persons.map(formatPerson))
+  })
 })
 
 app.get('/info', (req, res) => {
   const date = new Date()
-  const totalPersons = persons.length
-  const response = `<div>Puhelinluettelossa on ${totalPersons} ihmisen tiedot</div>`.concat(`<div>${date}</div>`)
-  res.send(response)
+  Person
+    .count()
+    .then(count => {
+      const response = `<div>Puhelinluettelossa on ${count} ihmisen tiedot</div>`.concat(`<div>${date}</div>`)
+      res.send(response)
+    })
 })
 
 app.get('/api/persons/:id', (req, res) => {
-  const id = Number(req.params.id)
-  const person = persons.find(p => p.id === id)
-  if (person) {
-    res.json(person)
-  } else {
-    res.status(404).end()
-  }
+  const id = req.params.id
+  Person
+    .findById(id)
+    .then(person => res.json(formatPerson(person)))
+    .catch(e => res.status(404).end())
 })
 
 app.delete('/api/persons/:id', (req, res) => {
-  const id = Number(req.params.id)
-  const person = persons.find(p => p.id === id)
-  if (person) {
-    persons = persons.filter(p => p.id !== id)
-    res.status(204).end()
-  } else {
-    res.status(404).end()
-  }
+  const id = req.params.id
+  Person
+      .findByIdAndRemove(id)
+      .then(p => {
+        res.status(204).end()
+      })
+      .catch(e => res.status(404).end())
 })
 
 app.post('/api/persons', (req, res) => {
@@ -77,25 +59,27 @@ app.post('/api/persons', (req, res) => {
   }
   const errors = validatePerson(person)
   if (errors.length === 0) {
-    person.id = Math.floor(Math.random() * 50 +1)
-    persons = persons.concat(person)
-    res.json(person)
+      const newPerson = new Person(person)
+      newPerson
+          .save().then(p => {
+            res.json(p)
+          })
+          .catch(e => {
+            console.log(e.message)
+            res.send(500).end()
+          })
   } else {
     res.status(400).json({ errors })
   }
 })
 
 app.put('/api/persons/:id', (req, res) => {
-  debugger
-  const id = Number(req.params.id)
-  const person = persons.find(p => p.id === id)
-  if (person) {
-    const updatedPerson = req.body
-    persons = persons.filter(p => p.id !== id).concat(updatedPerson)
-    res.status(204).end()
-  } else {
-    res.status(404).end()
-  }
+  const id = req.params.id
+  const updatedPerson = req.body
+  Person
+    .findByIdAndUpdate(id, updatedPerson, { new: true })
+    .then(person =>  res.json(formatPerson(person)).end())
+    .catch(e => res.status(404).end())
 })
 
 const validatePerson = (person) => {
@@ -106,10 +90,21 @@ const validatePerson = (person) => {
   if (!person.number) {
     errors.push('Number cannot be empty')
   }
-  if (persons.map(p => p.name.toLowerCase()).includes(person.name.toLowerCase())) {
-    errors.push(`${person.name} already exists in phonebook`)
-  }
+  Person.find()
+        .then(persons => {
+          if (persons.map(p => p.name.toLowerCase()).includes(person.name.toLowerCase())) {
+            errors.push(`${person.name} already exists in phonebook`)
+          }
+        })
   return errors
+}
+
+const formatPerson = (p) => {
+  const formattedPerson = { ...p._doc, id: p._id }
+  delete formattedPerson._id
+  delete formattedPerson.__v
+
+  return formattedPerson
 }
 
 const PORT = process.env.PORT || 3001
