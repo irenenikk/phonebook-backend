@@ -86,12 +86,12 @@ app.post('/api/persons', (req, res) => {
 })
 
 app.put('/api/persons/:id', (req, res) => {
+  debugger
   const id = Number(req.params.id)
   const person = persons.find(p => p.id === id)
   if (person) {
     const updatedPerson = req.body
-    persons = persons.filter(p => p.id !== id)
-    persons.concat(updatedPerson)
+    persons = persons.filter(p => p.id !== id).concat(updatedPerson)
     res.status(204).end()
   } else {
     res.status(404).end()
