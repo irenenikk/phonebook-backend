@@ -38,7 +38,8 @@ app.get('/api/persons/:id', (req, res) => {
   const id = req.params.id
   Person
     .findById(id)
-    .then(person => res.json(formatPerson(person)))
+    .then(formatPerson)
+    .then(person => res.json(person))
     .catch(e => res.status(404).end())
 })
 
@@ -78,7 +79,8 @@ app.put('/api/persons/:id', (req, res) => {
   const updatedPerson = req.body
   Person
     .findByIdAndUpdate(id, updatedPerson, { new: true })
-    .then(person =>  res.json(formatPerson(person)).end())
+    .then(formatPerson)
+    .then(person =>  res.json(person).end())
     .catch(e => res.status(404).end())
 })
 
